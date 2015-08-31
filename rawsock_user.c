@@ -182,11 +182,9 @@ rawsock_open(const char *name, void *data)
 {
     /* XXX no error handling (in any functions) */
     int s, r, flags;
-  
-
-	printf("raw_socket in\n");
+ 
     s = raw_socket("eth0", the_mac);
-	printf("raw_socket out,%d\n",s);
+	
     if (s < 0)
 	return -1;
     
@@ -243,7 +241,7 @@ rawsock_rx(int fd, void *buf, unsigned int buf_len)
     return r;
 }
 int recv_980b = 0;
-int print(void *buf)
+int filter(void *buf)
 {
 	int i;
 	int is_myframe = 0;
@@ -252,33 +250,15 @@ int print(void *buf)
    // printf("recv type;%d\n",ntohs(h1->ether_type ));
     if(ntohs(h1->ether_type ) == 0x980b || ntohs(h1->ether_type ) == 0x980a)
    	{
-   			/*printf("type=%d\n",ntohs(h1->ether_type ));
-   			printf("shost:");
-   			for(i = 0 ; i < ETH_ALEN ; i++){
-   				printf("%02x:",h1->ether_shost[i]);
-   			}
-			printf("\n");
-			printf("dhost:");
-   			for(i = 0 ; i < ETH_ALEN ; i++){
-   				printf("%02x:",h1->ether_dhost[i]);
-   			}
-   			printf("myMac:");
-			for(i = 0 ; i < ETH_ALEN ; i++){
-   				printf("%02x:",the_mac[i]);
-   			}
-   			printf("\n");*/
-   			
    			if(memcmp(h1->ether_shost,the_mac,6) ==0)
 			is_myframe = 1;
 			
 				
    		    for(i = 0 ; i < ETH_ALEN ; i++){
-   				
-				//只接收广播包和目的mac是自身的包
 				 if((h1->ether_dhost[i] != the_mac[i] && h1->ether_dhost[i] != 0xFF ))
    				 {
    			 		is_myframe = 1;
-					//INFO(( "[APP][CWMP][LOSTFRAME] filterd useless packet\n"));
+					
 					break;
    				 }
 			}
@@ -286,11 +266,6 @@ int print(void *buf)
    			return 0;
 			printf("recved:%d\n",++recv_980b);
 		
-		 //if(length > 26)
-			
-   			//printf("%u,:%u,\n", pbuf[20]& 255, pbuf[21]& 255);
-   			//printf("\nlost Frame:%0x\n",ntohs(h1->ether_type));
-   			
    			return 1;
    	}
   
@@ -301,15 +276,16 @@ int print(void *buf)
 int main(){
 	int rawsock,recvlen = 0;
 	char buf[1024] = {0};
-	printf("rawsock_open in\n");
+	
 	get_device_mac();
 	rawsock = rawsock_open("test","test");
-	printf("rawsock_open\n");
-	while(1)
-	{
-		//printf("rawsock_rx\n");
+	
+	while(1){
+		
 		recvlen = rawsock_rx(rawsock,buf,sizeof(buf));
-		if(recvlen >0)print(buf);
+		if(recvlen > 0){
+			filter(buf);
+		}
 		usleep(20000);
 	}
 	return 0;
